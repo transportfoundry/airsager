@@ -38,14 +38,10 @@
 #'      \item{DISTRICTID}{Unique identifier for each row/district}
 #'    }
 #' @return A tbl_df() object the contains the trips from origin zones to
-#'    destination zones.
+#'    destination zones.  The functions also writes out tables to your working
+#'    directory.
 
 as_disagg <- function(asTable, centroids, districts){
-
-  # Plot the centroids and districts for the user to see
-  proj4string(districts) <- proj4string(centroids)
-  plot(districts)
-  points(centroids)
 
   # Create an equivalency layer
   equivLyr <- make_equivLyr(centroids, districts)
@@ -55,6 +51,9 @@ as_disagg <- function(asTable, centroids, districts){
 
   # Disaggregate into zones
   expTbl <- explode(asTable, equivLyr)
+
+  # Clean table and write out mini CSVs
+  expTbl <- write(expTbl)
 
   return(expTbl)
 }
@@ -108,6 +107,7 @@ calc_perc <- function(equivLyr){
 #'
 #' @inheritParams as_disagg
 #' @param equivLyr Equivalency layer updated by calc_perc()
+#' @return expTbl Exploded, zonal table
 
 explode <- function(asTable, equivLyr){
 
@@ -145,6 +145,42 @@ explode <- function(asTable, equivLyr){
 }
 
 
+#' Breaks up and writes out the exploded table
+#'
+#' @param expTbl Exploded, zonal table returned by explode
+#' @return expTbl Returns nothing, but writes out individual tables.
 
+write <- function(expTbl){
 
+  # Format table
+  expTbl <- expTbl %>%
+    select(FROM = OrigCentroid, TO = DestCentroid, RESIDENT = Subscriber_Class,
+           TOD = Time_of_Day, Purpose, FinalTrips) %>%
+    filter(!is.na(FROM), !is.na(TO)) %>%
+    mutate(
+      TOD = ifelse(TOD == "H00:H06", "EA", TOD),
+      TOD = ifelse(TOD == "H06:H09", "AM", TOD),
+      TOD = ifelse(TOD == "H09:H15", "MD", TOD),
+      TOD = ifelse(TOD == "H15:H18", "PM", TOD),
+      TOD = ifelse(TOD == "H18:H24", "EV", TOD),
+      TOD = ifelse(TOD == "H00:H24", "Daily", TOD)
+    ) %>%
+    spread(Purpose, FinalTrips)
+
+  expTbl[is.na(expTbl)] <- 0
+
+  # Collect unique values to export by
+  resident <- unique(expTbl$RESIDENT)
+  timeofday <- unique(expTbl$TOD)
+
+  for (r in resident){
+    for (t in timeofday){
+      expTbl %>%
+        filter(RESIDENT == r, TOD == t) %>%
+        write_csv(paste0(r, "-", t, ".csv" ))
+    }
+  }
+
+  return(expTbl)
+}
 

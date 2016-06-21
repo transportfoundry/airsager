@@ -48,7 +48,8 @@ layer.  Must contain the following field:
 }
 \value{
 A tbl_df() object the contains the trips from origin zones to
-   destination zones.
+   destination zones.  The functions also writes out tables to your working
+   directory.
 }
 \description{
 Disaggregate from districts to zones.  Creates separate tables

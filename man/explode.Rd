@@ -23,6 +23,9 @@ format.  Should have 9 fields:
 
 \item{equivLyr}{Equivalency layer updated by calc_perc()}
 }
+\value{
+expTbl Exploded, zonal table
+}
 \description{
 Explodes the district-to-district table into a zone-to-zone table
 }
