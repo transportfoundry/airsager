@@ -14,7 +14,6 @@ License: MIT + file LICENSE
 LazyData: TRUE
 Imports:
     dplyr (>= 0.4.3),
-    readr (>= 0.2.2),
     tools (>= 3.2.4),
     rgdal (>= 1.1.7),
     sp (>= 1.1.2)
