@@ -119,10 +119,10 @@ explode <- function(asTable, equivLyr){
   # Create the exploded table by joining the equivTbl twice.
   # First join based on Origin; second based on Destination
   expTbl <- asTable %>%
-    left_join(equivTbl, by = c("Origin_Zone" = "DISTRICTID")) %>%
+    left_join(equivTbl, by = setNames("DISTRICTID", "Origin_Zone")) %>%
     rename(OrigCentroid = ZONEID, OrigPct = PERCENT) %>%
 
-    left_join(equivTbl, by = c("Destination_Zone" = "DISTRICTID")) %>%
+    left_join(equivTbl, by = setNames("DISTRICTID", "Destination_Zone")) %>%
     rename(DestCentroid = ZONEID, DestPct = PERCENT) %>%
     mutate(
       FinalPct = OrigPct * DestPct,
