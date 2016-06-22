@@ -9,11 +9,11 @@ Description: AirSage OD data is delievered in a standard format as a CSV file.
     by a model. This package will break up the OD district flows into zonal flows
     based on socio- economic data in the zones.
 Depends:
-    R (>= 3.2.4)
+    R (>= 3.2.4),
+    dplyr (>= 0.4.3)
 License: MIT + file LICENSE
 LazyData: TRUE
 Imports:
-    dplyr (>= 0.4.3),
     tidyr (>= 0.4.1),
     tools (>= 3.2.4),
     rgdal (>= 1.1.7),

@@ -68,7 +68,7 @@ as_disagg <- function(asTable, centroids, districts){
 make_equivLyr <- function(centroids, districts) {
 
   # Overlay the two layers
-  temp <- over(centroids, districts)
+  temp <- sp::over(centroids, districts)
 
   # Create output equivalency table
   centroids@data$DISTRICTID <- temp$DISTRICTID
@@ -165,7 +165,7 @@ write <- function(expTbl){
       TOD = ifelse(TOD == "H18:H24", "EV", TOD),
       TOD = ifelse(TOD == "H00:H24", "Daily", TOD)
     ) %>%
-    spread(Purpose, FinalTrips)
+    tidyr::spread(Purpose, FinalTrips)
 
   expTbl[is.na(expTbl)] <- 0
 
@@ -177,7 +177,7 @@ write <- function(expTbl){
     for (t in timeofday){
       expTbl %>%
         filter(RESIDENT == r, TOD == t) %>%
-        write_csv(paste0(r, "-", t, ".csv" ))
+        readr::write_csv(paste0(r, "-", t, ".csv" ))
     }
   }
 
