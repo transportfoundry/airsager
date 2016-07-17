@@ -37,6 +37,7 @@
 #'    \describe{
 #'      \item{DISTRICTID}{Unique identifier for each row/district}
 #'    }
+#'
 #' @return A tbl_df() object the contains the trips from origin zones to
 #'    destination zones.  The functions also writes out tables to your working
 #'    directory.
@@ -80,23 +81,25 @@ make_equivLyr <- function(centroids, districts) {
 #' Calculate the percent each centroid makes up of the district
 #'
 #' @param equivLyr Equivalency Layer created by make_equivLyr()
+#'
+#' @importFrom magrittr "%>%"
 
 calc_perc <- function(equivLyr){
 
   tbl <- equivLyr@data
 
   tbl <- tbl %>%
-    mutate(
+    dplyr::mutate(
       EXTSTATION = ifelse(is.na(EXTSTATION), 0, EXTSTATION),
       SE = ifelse(is.na(SE), 0, SE),
       VOLUME = ifelse(is.na(VOLUME), 0, VOLUME)
     ) %>%
-    group_by(DISTRICTID) %>%
-    mutate(
+    dplyr::group_by(DISTRICTID) %>%
+    dplyr::mutate(
       PERCENT = SE / sum(SE),
       PERCENT = ifelse(is.na(PERCENT), VOLUME / sum(VOLUME), PERCENT)
     ) %>%
-    ungroup()
+    dplyr::ungroup()
 
   equivLyr@data$PERCENT <- tbl$PERCENT
 
@@ -107,6 +110,7 @@ calc_perc <- function(equivLyr){
 #'
 #' @inheritParams as_disagg
 #' @param equivLyr Equivalency layer updated by calc_perc()
+#' @importFrom magrittr "%>%"
 #' @return expTbl Exploded, zonal table
 
 explode <- function(asTable, equivLyr){
@@ -114,17 +118,18 @@ explode <- function(asTable, equivLyr){
   # Simplify the equivLyr into just the fields needed
   # (No longer a spatial layer)
   equivTbl <- equivLyr@data %>%
-    select(DISTRICTID, ZONEID, PERCENT)
+    dplyr:select(DISTRICTID, ZONEID, PERCENT)
 
   # Create the exploded table by joining the equivTbl twice.
   # First join based on Origin; second based on Destination
   expTbl <- asTable %>%
-    left_join(equivTbl, by = setNames("DISTRICTID", "Origin_Zone")) %>%
-    rename(OrigCentroid = ZONEID, OrigPct = PERCENT) %>%
-
-    left_join(equivTbl, by = setNames("DISTRICTID", "Destination_Zone")) %>%
-    rename(DestCentroid = ZONEID, DestPct = PERCENT) %>%
-    mutate(
+    dplyr::left_join(equivTbl, by = setNames("DISTRICTID", "Origin_Zone")) %>%
+    dplyr::rename(OrigCentroid = ZONEID, OrigPct = PERCENT) %>%
+    dplyr::left_join(equivTbl, by = stats::setNames(
+      "DISTRICTID", "Destination_Zone")
+      ) %>%
+    dplyr::rename(DestCentroid = ZONEID, DestPct = PERCENT) %>%
+    dplyr::mutate(
       FinalPct = OrigPct * DestPct,
       FinalTrips = Count * FinalPct
     )
@@ -148,16 +153,18 @@ explode <- function(asTable, equivLyr){
 #' Breaks up and writes out the exploded table
 #'
 #' @param expTbl Exploded, zonal table returned by explode
+#' @importFrom magrittr "%>%"
 #' @return expTbl Returns nothing, but writes out individual tables.
 
 write <- function(expTbl){
 
   # Format table
   expTbl <- expTbl %>%
-    select(FROM = OrigCentroid, TO = DestCentroid, RESIDENT = Subscriber_Class,
-           TOD = Time_of_Day, Purpose, FinalTrips) %>%
-    filter(!is.na(FROM), !is.na(TO)) %>%
-    mutate(
+    dplyr::select(FROM = OrigCentroid, TO = DestCentroid,
+                 RESIDENT = Subscriber_Class,
+                 TOD = Time_of_Day, Purpose, FinalTrips) %>%
+    dplyr::filter(!is.na(FROM), !is.na(TO)) %>%
+    dplyr::mutate(
       TOD = ifelse(TOD == "H00:H06", "EA", TOD),
       TOD = ifelse(TOD == "H06:H09", "AM", TOD),
       TOD = ifelse(TOD == "H09:H15", "MD", TOD),
@@ -176,7 +183,7 @@ write <- function(expTbl){
   for (r in resident){
     for (t in timeofday){
       expTbl %>%
-        filter(RESIDENT == r, TOD == t) %>%
+        dplyr::filter(RESIDENT == r, TOD == t) %>%
         readr::write_csv(paste0(r, "-", t, ".csv" ))
     }
   }
