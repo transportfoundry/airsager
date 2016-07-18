@@ -44,6 +44,9 @@
 
 as_disagg <- function(asTable, centroids, districts){
 
+  # Remove adjacent external zone trips
+  asTable <- remove_adjacent_trips(asTable, districts)
+
   # Create an equivalency layer
   equivLyr <- make_equivLyr(centroids, districts)
 
@@ -54,9 +57,82 @@ as_disagg <- function(asTable, centroids, districts){
   expTbl <- explode(asTable, equivLyr)
 
   # Clean table and write out mini CSVs
-  expTbl <- write(expTbl)
+  expTbl <- format(expTbl)
 
   return(expTbl)
+}
+
+#' Remove adjacent external zone trips.  External trips to adjacent external
+#' zones should not be loaded onto the region's model network.  Similarly,
+#' external trips made within the same external zone are also removed.
+#'
+#' @inheritParams as_disagg
+#' @importFrom magrittr "%>%"
+
+remove_adjacent_trips <- function(asTable, centroids, districts) {
+
+  # Overlay the two layers to determine which districts are external
+  # This can miss an external AS district if there are no modeled external
+  # stations in it.
+  temp <- sp::over(districts, centroids)
+  districts$EXTSTATION <- temp$EXTSTATION
+  districts$EXTSTATION[is.na(districts$EXTSTATION)] <- 0
+  extTbl <- districts@data %>%
+    dplyr::select(DISTRICTID, EXTSTATION)
+
+  # Modify asTable to mark which districts are external stations
+  asTable <- asTable %>%
+    dplyr::left_join(extTbl, by = c("Origin_Zone" = "DISTRICTID")) %>%
+    dplyr::rename(EXTORIGIN = EXTSTATION) %>%
+    dplyr::left_join(extTbl, by = c("Destination_Zone" = "DISTRICTID")) %>%
+    dplyr::rename(EXTDESTINATION = EXTSTATION)
+
+  # Remove intrazonal trips from external stations
+  remIntTrips <- asTable %>%
+    dplyr::filter(EXTORIGIN == 1, Origin_Zone == Destination_Zone) %>%
+    dplyr::summarise(total = sum(Count)) %>%
+    as.numeric()
+  print(paste0(
+    "Removing ", remIntTrips, " trips that are intrazonal for external zones"
+  ))
+  asTable <- asTable %>%
+    dplyr::mutate(
+      Count = ifelse(EXTORIGIN == 1 & Origin_Zone == Destination_Zone,
+                     0, Count)
+    )
+
+  # Determine neighbors
+  ext_dists <- districts[districts$EXTSTATION == 1, ]
+  adj <- spdep::poly2nb(ext_dists)
+  temp <- spdep::nb2mat(adj, style = "B")
+  rownames(temp) <- ext_dists$DISTRICTID
+  colnames(temp) <- ext_dists$DISTRICTID
+
+  adjTbl <- temp %>%
+    tibble::tbl_df() %>%
+    dplyr::mutate(FROM = rownames(temp)) %>%
+    tidyr::gather(key = TO, value = ADJ, -FROM) %>%
+    dplyr::mutate(FROM = as.numeric(FROM), TO = as.numeric(TO))
+
+  # Modify asTable to remove adjacent external trips
+  asTable <- asTable %>%
+    dplyr::left_join(adjTbl, by = stats::setNames(
+      c("FROM", "TO"),
+      c("Origin_Zone", "Destination_Zone")
+    )) %>%
+    dplyr::mutate(ADJ = ifelse(is.na(ADJ), 0, ADJ))
+
+  remAdjTrips <- sum(asTable$Count[asTable$ADJ == 1])
+  print(paste0(
+    "Removing ", remAdjTrips, " that are from external stations to ",
+    "adjacent external stations"
+  ))
+  asTable <- asTable %>%
+    dplyr::mutate(
+      Count = ifelse(ADJ == 1, 0, Count)
+    )
+
+  return(asTable)
 }
 
 
@@ -72,7 +148,7 @@ make_equivLyr <- function(centroids, districts) {
   temp <- sp::over(centroids, districts)
 
   # Create output equivalency table
-  centroids@data$DISTRICTID <- temp$DISTRICTID
+  centroids$DISTRICTID <- temp$DISTRICTID
 
   return(centroids)
 }
@@ -118,7 +194,7 @@ explode <- function(asTable, equivLyr){
   # Simplify the equivLyr into just the fields needed
   # (No longer a spatial layer)
   equivTbl <- equivLyr@data %>%
-    dplyr:select(DISTRICTID, ZONEID, PERCENT)
+    dplyr::select(DISTRICTID, ZONEID, PERCENT)
 
   # Create the exploded table by joining the equivTbl twice.
   # First join based on Origin; second based on Destination
@@ -150,13 +226,13 @@ explode <- function(asTable, equivLyr){
 }
 
 
-#' Breaks up and writes out the exploded table
+#' Formats columns and values in the exploded table.
 #'
 #' @param expTbl Exploded, zonal table returned by explode
 #' @importFrom magrittr "%>%"
-#' @return expTbl Returns nothing, but writes out individual tables.
+#' @return Returns the final table.
 
-write <- function(expTbl){
+format <- function(expTbl){
 
   # Format table
   expTbl <- expTbl %>%
@@ -172,21 +248,10 @@ write <- function(expTbl){
       TOD = ifelse(TOD == "H18:H24", "EV", TOD),
       TOD = ifelse(TOD == "H00:H24", "Daily", TOD)
     ) %>%
-    tidyr::spread(Purpose, FinalTrips)
+    tidyr::unite(PURPTOD, Purpose, TOD, sep = "_") %>%
+    tidyr::spread(PURPTOD, FinalTrips)
 
   expTbl[is.na(expTbl)] <- 0
-
-  # Collect unique values to export by
-  resident <- unique(expTbl$RESIDENT)
-  timeofday <- unique(expTbl$TOD)
-
-  for (r in resident){
-    for (t in timeofday){
-      expTbl %>%
-        dplyr::filter(RESIDENT == r, TOD == t) %>%
-        readr::write_csv(paste0(r, "-", t, ".csv" ))
-    }
-  }
 
   return(expTbl)
 }
