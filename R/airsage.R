@@ -45,7 +45,7 @@
 as_disagg <- function(asTable, centroids, districts){
 
   # Remove adjacent external zone trips
-  asTable <- remove_adjacent_trips(asTable, districts)
+  asTable <- remove_adjacent_trips(asTable, centroids, districts)
 
   # Create an equivalency layer
   equivLyr <- make_equivLyr(centroids, districts)
@@ -217,8 +217,8 @@ explode <- function(asTable, equivLyr){
   pctdiff <- round(diff / before * 100, 2)
   print(
     paste0(
-      "Trips went from ", before, " to ", after, ". A difference of ", diff,
-      " or ", pctdiff, "%."
+      "During disaggregation, trips went from ", before, " to ",
+      after, ". A difference of ", diff, " or ", pctdiff, "%."
       )
     )
 
