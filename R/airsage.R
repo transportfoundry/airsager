@@ -37,12 +37,20 @@
 #'    \describe{
 #'      \item{DISTRICTID}{Unique identifier for each row/district}
 #'    }
-#'
+#' @param tod_equiv Named list specifying the TOD used by the AirSage data.
+#'    For example:
+#'    \itemize{
+#'      \item EA = "H00:H06"
+#'      \item AM = "H06:H09"
+#'      \item MD = "H09:H15"
+#'      \item PM = "H15:H18"
+#'      \item EV = "H18:H24"
+#'    }
 #' @return A tbl_df() object the contains the trips from origin zones to
 #'    destination zones.  The functions also writes out tables to your working
 #'    directory.
 
-as_disagg <- function(asTable, centroids, districts){
+as_disagg <- function(asTable, centroids, districts, tod_equiv){
 
   # Remove adjacent external zone trips
   asTable <- remove_adjacent_trips(asTable, centroids, districts)
@@ -57,7 +65,7 @@ as_disagg <- function(asTable, centroids, districts){
   expTbl <- explode(asTable, equivLyr)
 
   # Clean table and write out mini CSVs
-  expTbl <- format(expTbl)
+  expTbl <- format(expTbl, tod_equiv)
 
   return(expTbl)
 }
@@ -228,11 +236,12 @@ explode <- function(asTable, equivLyr){
 
 #' Formats columns and values in the exploded table.
 #'
+#' @inheritParams as_disagg
 #' @param expTbl Exploded, zonal table returned by explode
 #' @importFrom magrittr "%>%"
 #' @return Returns the final table.
 
-format <- function(expTbl){
+format <- function(expTbl, tod_equiv){
 
   # Format table
   expTbl <- expTbl %>%
@@ -241,11 +250,11 @@ format <- function(expTbl){
                  TOD = Time_of_Day, Purpose, FinalTrips) %>%
     dplyr::filter(!is.na(FROM), !is.na(TO)) %>%
     dplyr::mutate(
-      TOD = ifelse(TOD == "H00:H06", "EA", TOD),
-      TOD = ifelse(TOD == "H06:H09", "AM", TOD),
-      TOD = ifelse(TOD == "H09:H15", "MD", TOD),
-      TOD = ifelse(TOD == "H15:H18", "PM", TOD),
-      TOD = ifelse(TOD == "H18:H24", "EV", TOD),
+      TOD = ifelse(TOD == tod_equiv$EA, "EA", TOD),
+      TOD = ifelse(TOD == tod_equiv$AM, "AM", TOD),
+      TOD = ifelse(TOD == tod_equiv$MD, "MD", TOD),
+      TOD = ifelse(TOD == tod_equiv$PM, "PM", TOD),
+      TOD = ifelse(TOD == tod_equiv$EV, "EV", TOD),
       TOD = ifelse(TOD == "H00:H24", "Daily", TOD)
     ) %>%
     tidyr::unite(PURPTOD, Purpose, TOD, sep = "_") %>%

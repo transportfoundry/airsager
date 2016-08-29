@@ -4,10 +4,20 @@
 \alias{format}
 \title{Formats columns and values in the exploded table.}
 \usage{
-format(expTbl)
+format(expTbl, tod_equiv)
 }
 \arguments{
 \item{expTbl}{Exploded, zonal table returned by explode}
+
+\item{tod_equiv}{Named list specifying the TOD used by the AirSage data.
+For example:
+\itemize{
+  \item EA = "H00:H06"
+  \item AM = "H06:H09"
+  \item MD = "H09:H15"
+  \item PM = "H15:H18"
+  \item EV = "H18:H24"
+}}
 }
 \value{
 Returns the final table.

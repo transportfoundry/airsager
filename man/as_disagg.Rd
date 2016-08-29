@@ -5,7 +5,7 @@
 \title{Disaggregate from districts to zones.  Creates separate tables
 for each subscriber class, purpose, and time of day.}
 \usage{
-as_disagg(asTable, centroids, districts)
+as_disagg(asTable, centroids, districts, tod_equiv)
 }
 \arguments{
 \item{asTable}{Table of AirSage data as provided in their standard
@@ -44,6 +44,16 @@ of the volume/count at that station.}
 layer.  Must contain the following field:
 \describe{
   \item{DISTRICTID}{Unique identifier for each row/district}
+}}
+
+\item{tod_equiv}{Named list specifying the TOD used by the AirSage data.
+For example:
+\itemize{
+  \item EA = "H00:H06"
+  \item AM = "H06:H09"
+  \item MD = "H09:H15"
+  \item PM = "H15:H18"
+  \item EV = "H18:H24"
 }}
 }
 \value{
