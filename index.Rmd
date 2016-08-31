@@ -1,0 +1,122 @@
+---
+title: "Package airsager"
+author: "Systems Analysis Group"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: html_document
+---
+
+```{r setup, include=FALSE, cache = FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, error=FALSE)
+options(scipen=999) # removes sci notation
+```
+
+```{r}
+library(dplyr)
+library(htmlTable)
+```
+
+
+# Introduction
+[AirSage](http://www.airsage.com/) is a company that provides a variety of data products derived from mobile phones using cell tower triangulation.  The Systems Analysis Group (SAG) at WSP|Parsons Brinckerhoff has used their data to inform model development on a number of different projects.
+
+Due to the accuracy of cell-tower triangulation, and sometimes due to sample size limitations, model zones are often too small to collect data for.  As a result, the model zones are aggregated to districts.  Once the data is collected and provided by AirSage, SAG must dis-aggregate the information back to model zones in order to do certain types of analysis.
+
+Both the data format from AirSage and the dis-aggregation process are relatively fixed.  This led the automation of this dis-aggregation, which is the purpose of the `airsager` package.
+
+The purpose of this page is to provide a general overview of what the package does, and what assumptions it makes.  The package manual exists to provide more detail on specific arguments and parameter requirements for package users in R.
+
+# Required Data
+The `airsager` package requires four inputs:
+
+  * Standard format AirSage Origin-Destination deliverable
+  * Shapefile of model centroid points
+    * Both internal and external zones
+      * Internal zones include socio-economic (SE) data
+      * External zones include traffic counts
+  * Shapefile of AirSage district polygons
+  * Time of day equivalency table
+    * Specifies what the time of day definitions are in the AirSage deliverable
+    
+# Pre-disaggregation Processing
+Before dis-aggregation takes place, two types of trips are removed:
+
+  * Trips that start and end in the same external zone
+  * Trips that start and end in different, but adjacent, external zones
+
+These trips are removed, because they do not enter the model region.  Some trips between non-adjacent external stations could be removed for the same reason, but the package assumes the number of these trips is insignificant.
+
+# Disaggregation
+Once the trip data has been cleaned, the dis-aggregation process begins with the creation of an equivalency between AirSage districts and model centroids.  Multiple model centroids become associated with the same AirSage district.
+
+```{r}
+equiv <- data_frame(
+  District = c(1, 1, 2, 2),
+  Centroid = c(1, 2, 3, 4),
+  Households = c(50, 100, 75, 75)
+)
+
+equiv %>% htmlTable(rnames = FALSE, caption = "Example Equivalency")
+```
+
+
+For each district, the relative weight of each centroid is determined based on district type
+
+  * External Stations: weighted by traffic volume
+  * Internal Stations: weighted by SE data
+
+```{r}
+equiv <- equiv %>%
+  group_by(District) %>%
+  mutate(Weight = round(Households / sum(Households), 2)) %>%
+  ungroup()
+
+equiv %>% htmlTable(rnames = FALSE, caption = "Weight Calculation")
+```
+
+These weights can then be used to dis-aggregate trips between districts 1 and 2.  Assume 100 trips from district 1 to 2.
+
+```{r}
+trips <- data_frame(
+  From_District = c(1),
+  To_District = c(2),
+  Trips = 100
+)
+
+trips %>% htmlTable(rnames = FALSE, caption = "Trips")
+```
+
+One-third of the trips' origins would start in centroid 1.  Two-thirds would start in centroid 2.  The trips' destinations would split evenly between centroids 3 and 4.
+
+```{r}
+disag <- trips %>%
+  left_join(equiv, by = c("From_District" = "District")) %>%
+  rename(From_Weight = Weight, From_Centroid = Centroid) %>%
+  select(-Households) %>%
+  left_join(equiv, by = c("To_District" = "District")) %>%
+  rename(To_Weight = Weight, To_Centroid = Centroid) %>%
+  select(-Households)
+  
+disag %>% htmlTable(rnames = FALSE, caption = "Disaggregation")
+```
+
+With weights for both origins and destinations determined, trips can be calculated with simple multiplication.
+
+```{r}
+interm <- disag %>%
+  rename(Total_Trips = Trips) %>%
+  mutate(Trips = round(Total_Trips * From_Weight * To_Weight, 2)) %>%
+  select(From_Centroid, To_Centroid, Total_Trips, From_Weight, To_Weight, Trips)
+
+interm %>% htmlTable(rnames = FALSE, caption = "Centroid Trip Calculation")
+```
+
+The final table is shown below.
+```{r}
+final <- interm %>%
+  select(-c(Total_Trips, From_Weight, To_Weight))
+
+final %>% htmlTable(rnames = FALSE, caption = "Final Table")
+```
+
+# Other Notes
+The above is a stylized example meant to illustrate the basic concept of what the tool does.  The full `airsager` dis-aggregation process respects other dimensions of the data like time of day, trip purpose, and residency status.  Dis-aggregation is done independently for each.

@@ -1,0 +1,17 @@
+name: "Package airsager"
+output_dir: "."
+navbar:
+  title: "airsager"
+  right:
+    - icon: fa-github fa-lg
+      href: https://github.com/pbsag/airsager
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    mathjax: null
+    toc_float:
+      collapsed: false
+    includes:
+        after_body: include/after_body.html
+    css: styles.css
