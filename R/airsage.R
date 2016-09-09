@@ -117,7 +117,7 @@ remove_adjacent_trips <- function(asTable, centroids, districts) {
   colnames(temp) <- ext_dists$DISTRICTID
 
   adjTbl <- temp %>%
-    tibble::tbl_df() %>%
+    dplyr::tbl_df() %>%
     dplyr::mutate(FROM = rownames(temp)) %>%
     tidyr::gather(key = TO, value = ADJ, -FROM) %>%
     dplyr::mutate(FROM = as.numeric(FROM), TO = as.numeric(TO))
