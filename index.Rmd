@@ -17,11 +17,11 @@ library(htmlTable)
 
 
 # Introduction
-[AirSage](http://www.airsage.com/) is a company that provides a variety of data products derived from mobile phones using cell tower triangulation.  The Systems Analysis Group (SAG) at WSP|Parsons Brinckerhoff has used their data to inform model development on a number of different projects.
+[AirSage](http://www.airsage.com/) is a company that provides a variety of data products derived from mobile phones using cell tower triangulation.  The Systems Analysis Group (SAG) at WSP|Parsons Brinckerhoff has used their data to inform model development and validation on a number of different projects.
 
-Due to the accuracy of cell-tower triangulation, and sometimes due to sample size limitations, model zones are often too small to collect data for.  As a result, the model zones are aggregated to districts.  Once the data is collected and provided by AirSage, SAG must dis-aggregate the information back to model zones in order to do certain types of analysis.
+Due to the accuracy of cell-tower triangulation, and sometimes due to sample size limitations, model zones are often too small for collecting robust data. As a result, the model zones are often aggregated to districts.  Once the data is collected and provided by AirSage, SAG must dis-aggregate the information back to model zones in order to support certain types of analysis.
 
-Both the data format from AirSage and the dis-aggregation process are relatively fixed.  This led the automation of this dis-aggregation, which is the purpose of the `airsager` package.
+Both the data format from AirSage and the dis-aggregation process are relatively fixed, supporting an automated process for dis-aggregating the data, which is the purpose of the `airsager` package.
 
 The purpose of this page is to provide a general overview of what the package does, and what assumptions it makes.  The package manual exists to provide more detail on specific arguments and parameter requirements for package users in R.
 
