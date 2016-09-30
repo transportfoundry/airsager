@@ -12,7 +12,7 @@ Hickory TDM
 centroids
 }
 \description{
-A layer containing the Hickory NC model centroids and data.
+A layer containing the Hickory NC model centroid points and data.
 }
 \keyword{datasets}
 

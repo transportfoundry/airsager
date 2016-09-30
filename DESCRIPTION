@@ -2,7 +2,7 @@ Package: airsager
 Type: Package
 Title: Disaggregate AirSage OD Tables to Model TAZs
 Version: 0.0.0.9000
-Author@R: person("Kyle", "Ward", email = "warddk@pbworld.com", role = c("aut", "cre"))
+Authors@R: person("Kyle", "Ward", email = "warddk@pbworld.com", role = c("aut", "cre"))
 BugReports: https://github.com/pbsag/airsager/issues
 Description: AirSage OD data is delievered in a standard format as a CSV file.
     Generally, the district structure used is more coarse than the actual zones used

@@ -4,7 +4,7 @@
 \name{districts}
 \alias{districts}
 \title{Sample AirSage Districts (Hickory)}
-\format{A SpatialPointsDataFrame}
+\format{A SpatialPolygonsDataFrame}
 \source{
 Hickory NC
 }
@@ -12,7 +12,7 @@ Hickory NC
 districts
 }
 \description{
-A layer containing the Hickory NC AirSage districts.
+A layer containing the Hickory NC AirSage district polygons.
 }
 \keyword{datasets}
 

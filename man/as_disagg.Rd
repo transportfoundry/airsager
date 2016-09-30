@@ -3,7 +3,7 @@
 \name{as_disagg}
 \alias{as_disagg}
 \title{Disaggregate from districts to zones.  Creates separate tables
-for each subscriber class, purpose, and time of day.}
+for each subscriber class and time of day.}
 \usage{
 as_disagg(asTable, centroids, districts, tod_equiv)
 }
@@ -63,6 +63,6 @@ A tbl_df() object the contains the trips from origin zones to
 }
 \description{
 Disaggregate from districts to zones.  Creates separate tables
-for each subscriber class, purpose, and time of day.
+for each subscriber class and time of day.
 }
 

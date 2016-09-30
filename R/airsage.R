@@ -1,5 +1,5 @@
 #' Disaggregate from districts to zones.  Creates separate tables
-#' for each subscriber class, purpose, and time of day.
+#' for each subscriber class and time of day.
 #'
 #' @export
 #' @param asTable Table of AirSage data as provided in their standard
@@ -207,7 +207,7 @@ explode <- function(asTable, equivLyr){
   # Create the exploded table by joining the equivTbl twice.
   # First join based on Origin; second based on Destination
   expTbl <- asTable %>%
-    dplyr::left_join(equivTbl, by = setNames("DISTRICTID", "Origin_Zone")) %>%
+    dplyr::left_join(equivTbl, by = stats::setNames("DISTRICTID", "Origin_Zone")) %>%
     dplyr::rename(OrigCentroid = ZONEID, OrigPct = PERCENT) %>%
     dplyr::left_join(equivTbl, by = stats::setNames(
       "DISTRICTID", "Destination_Zone")
