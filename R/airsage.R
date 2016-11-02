@@ -143,8 +143,8 @@ remove_adjacent_trips <- function(asTable, centroids, districts, ee_filter) {
       Count = ifelse(ADJ == 1, 0, Count)
     )
 
-  # Use the ee_filter to remove additional flows as specified
-  if (!is.na(ee_filter)){
+  # If it exists, use the ee_filter to remove additional flows as specified
+  if (is.data.frame(ee_filter)){
     # standardize the column names
     names <- colnames(ee_filter)
     names[1] <- "from"
