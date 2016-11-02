@@ -6,7 +6,7 @@
 zones should not be loaded onto the region's model network.  Similarly,
 external trips made within the same external zone are also removed.}
 \usage{
-remove_adjacent_trips(asTable, centroids, districts)
+remove_adjacent_trips(asTable, centroids, districts, ee_filter)
 }
 \arguments{
 \item{asTable}{Table of AirSage data as provided in their standard
@@ -46,6 +46,10 @@ layer.  Must contain the following field:
 \describe{
   \item{DISTRICTID}{Unique identifier for each row/district}
 }}
+
+\item{ee_filter}{Dataframe with a `from` and `to` column. Removes flows from
+included district pairs. Used to remove EE flows that do not enter the
+model region.}
 }
 \description{
 Remove adjacent external zone trips.  External trips to adjacent external

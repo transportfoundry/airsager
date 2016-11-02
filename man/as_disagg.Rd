@@ -5,7 +5,7 @@
 \title{Disaggregate from districts to zones.  Creates separate tables
 for each subscriber class and time of day.}
 \usage{
-as_disagg(asTable, centroids, districts, tod_equiv)
+as_disagg(asTable, centroids, districts, tod_equiv, ee_filter = NA)
 }
 \arguments{
 \item{asTable}{Table of AirSage data as provided in their standard
@@ -55,6 +55,10 @@ For example:
   \item PM = "H15:H18"
   \item EV = "H18:H24"
 }}
+
+\item{ee_filter}{Dataframe with a `from` and `to` column. Removes flows from
+included district pairs. Used to remove EE flows that do not enter the
+model region.}
 }
 \value{
 A tbl_df() object the contains the trips from origin zones to
