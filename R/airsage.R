@@ -15,14 +15,14 @@
 #'    \item Time_of_Day
 #'    \item Count
 #'    }
-#' @param centroids SpatialPointsDataFrame of model centroids.  Must
+#' @param centroids SpatialPointsDataFrame of model centroids.  Can
 #'    include the external stations (use the model node layer).
 #'    Must also contain the following fields:
 #'    \describe{
 #'    \item{ZONEID}{Unique identifier for each row/zone}
 #'    \item{EXTSTATION}{Externals stations marked with a 1}
-#'    \item{SE}{"Stuff" in the zone to use for disaggregation. Can be any
-#'    combination of residential and/or employment info.
+#'    \item{SE}{"Stuff" in the zone to use for weighted disaggregation. Can be
+#'    any combination of residential and/or employment info.
 #'    For example:
 #'    \itemize{
 #'      \item SE = Households + Employment
@@ -91,100 +91,103 @@ remove_adjacent_trips <- function(asTable, centroids, districts, ee_filter) {
   extTbl <- districts@data %>%
     dplyr::select(DISTRICTID, EXTSTATION)
 
-  # Modify asTable to mark which districts are external stations
-  asTable <- asTable %>%
-    dplyr::left_join(extTbl, by = c("Origin_Zone" = "DISTRICTID")) %>%
-    dplyr::rename(EXTORIGIN = EXTSTATION) %>%
-    dplyr::left_join(extTbl, by = c("Destination_Zone" = "DISTRICTID")) %>%
-    dplyr::rename(EXTDESTINATION = EXTSTATION)
+  # continue only if external districts were found
+  if (sum(extTbl$EXTSTATION) > 0){
 
-  # Remove intrazonal trips from external stations
-  remIntTrips <- asTable %>%
-    dplyr::filter(EXTORIGIN == 1, Origin_Zone == Destination_Zone) %>%
-    dplyr::summarise(total = sum(Count)) %>%
-    as.numeric()
-  print(paste0(
-    "Removing ", remIntTrips, " trips that are intrazonal for external zones"
-  ))
-  asTable <- asTable %>%
-    dplyr::mutate(
-      Count = ifelse(EXTORIGIN == 1 & Origin_Zone == Destination_Zone,
-                     0, Count)
-    )
-
-  # Determine neighbors
-  ext_dists <- districts[districts$EXTSTATION == 1, ]
-  adj <- spdep::poly2nb(ext_dists)
-  temp <- spdep::nb2mat(adj, style = "B")
-  rownames(temp) <- ext_dists$DISTRICTID
-  colnames(temp) <- ext_dists$DISTRICTID
-
-  adjTbl <- temp %>%
-    dplyr::tbl_df() %>%
-    dplyr::mutate(FROM = rownames(temp)) %>%
-    tidyr::gather(key = TO, value = ADJ, -FROM) %>%
-    dplyr::mutate(FROM = as.numeric(FROM), TO = as.numeric(TO))
-
-  # Modify asTable to remove adjacent external trips
-  asTable <- asTable %>%
-    dplyr::left_join(adjTbl, by = stats::setNames(
-      c("FROM", "TO"),
-      c("Origin_Zone", "Destination_Zone")
-    )) %>%
-    dplyr::mutate(ADJ = ifelse(is.na(ADJ), 0, ADJ))
-
-  remAdjTrips <- sum(asTable$Count[asTable$ADJ == 1])
-  print(paste0(
-    "Removing ", remAdjTrips, " that are from external stations to ",
-    "adjacent external stations"
-  ))
-  asTable <- asTable %>%
-    dplyr::mutate(
-      Count = ifelse(ADJ == 1, 0, Count)
-    )
-
-  # If it exists, use the ee_filter to remove additional flows as specified
-  if (is.data.frame(ee_filter)){
-    # standardize the column names
-    names <- colnames(ee_filter)
-    names[1] <- "from"
-    names[2] <- "to"
-    colnames(ee_filter) <- names
-
-    # Create a percent column if one isn't present
-    if (is.null(ee_filter$percent)){
-      ee_filter$percent <- 0
-    }
-
-    # make sure each row in the ee_filter is unique
-    ee_filter <- ee_filter %>%
-      group_by(from, to) %>%
-      summarize(percent = mean(percent)) %>%
-      ungroup()
-
-    # join ee_filter to asTable
+    # Modify asTable to mark which districts are external stations
     asTable <- asTable %>%
-      dplyr::left_join(ee_filter, by = stats::setNames(
-        c("from", "to"),
+      dplyr::left_join(extTbl, by = c("Origin_Zone" = "DISTRICTID")) %>%
+      dplyr::rename(EXTORIGIN = EXTSTATION) %>%
+      dplyr::left_join(extTbl, by = c("Destination_Zone" = "DISTRICTID")) %>%
+      dplyr::rename(EXTDESTINATION = EXTSTATION)
+
+    # Remove intrazonal trips from external stations
+    remIntTrips <- asTable %>%
+      dplyr::filter(EXTORIGIN == 1, Origin_Zone == Destination_Zone) %>%
+      dplyr::summarise(total = sum(Count)) %>%
+      as.numeric()
+    print(paste0(
+      "Removing ", remIntTrips, " trips that are intrazonal for external zones"
+    ))
+    asTable <- asTable %>%
+      dplyr::mutate(
+        Count = ifelse(EXTORIGIN == 1 & Origin_Zone == Destination_Zone,
+                       0, Count)
+      )
+
+    # Determine neighbors
+    ext_dists <- districts[districts$EXTSTATION == 1, ]
+    adj <- spdep::poly2nb(ext_dists)
+    temp <- spdep::nb2mat(adj, style = "B")
+    rownames(temp) <- ext_dists$DISTRICTID
+    colnames(temp) <- ext_dists$DISTRICTID
+
+    adjTbl <- temp %>%
+      dplyr::tbl_df() %>%
+      dplyr::mutate(FROM = rownames(temp)) %>%
+      tidyr::gather(key = TO, value = ADJ, -FROM) %>%
+      dplyr::mutate(FROM = as.numeric(FROM), TO = as.numeric(TO))
+
+    # Modify asTable to remove adjacent external trips
+    asTable <- asTable %>%
+      dplyr::left_join(adjTbl, by = stats::setNames(
+        c("FROM", "TO"),
         c("Origin_Zone", "Destination_Zone")
+      )) %>%
+      dplyr::mutate(ADJ = ifelse(is.na(ADJ), 0, ADJ))
+
+    remAdjTrips <- sum(asTable$Count[asTable$ADJ == 1])
+    print(paste0(
+      "Removing ", remAdjTrips, " that are from external stations to ",
+      "adjacent external stations"
+    ))
+    asTable <- asTable %>%
+      dplyr::mutate(
+        Count = ifelse(ADJ == 1, 0, Count)
+      )
+
+    # If it exists, use the ee_filter to remove additional flows as specified
+    if (is.data.frame(ee_filter)){
+      # standardize the column names
+      names <- colnames(ee_filter)
+      names[1] <- "from"
+      names[2] <- "to"
+      colnames(ee_filter) <- names
+
+      # Create a percent column if one isn't present
+      if (is.null(ee_filter$percent)){
+        ee_filter$percent <- 0
+      }
+
+      # make sure each row in the ee_filter is unique
+      ee_filter <- ee_filter %>%
+        group_by(from, to) %>%
+        summarize(percent = mean(percent)) %>%
+        ungroup()
+
+      # join ee_filter to asTable
+      asTable <- asTable %>%
+        dplyr::left_join(ee_filter, by = stats::setNames(
+          c("from", "to"),
+          c("Origin_Zone", "Destination_Zone")
+        ))
+
+      # print out how many trips will be removed by the ee_filter
+      rem_ee_filter <- asTable %>%
+        dplyr::filter(!is.na(percent)) %>%
+        dplyr::summarize(Count = sum(Count)) %>%
+        .$Count
+      print(paste0(
+        "Removing ", rem_ee_filter, " additional trips according to ",
+        "the ee_filter"
       ))
 
-    # print out how many trips will be removed by the ee_filter
-    rem_ee_filter <- asTable %>%
-      dplyr::filter(!is.na(percent)) %>%
-      dplyr::summarize(Count = sum(Count)) %>%
-      .$Count
-    print(paste0(
-      "Removing ", rem_ee_filter, " additional trips according to ",
-      "the ee_filter"
-    ))
-
-    # remove trips
-    asTable <- asTable %>%
-      mutate(Count = ifelse(!is.na(percent), Count * percent, Count)) %>%
-      select(-percent)
+      # remove trips
+      asTable <- asTable %>%
+        mutate(Count = ifelse(!is.na(percent), Count * percent, Count)) %>%
+        select(-percent)
+    }
   }
-
   return(asTable)
 }
 
@@ -288,20 +291,19 @@ explode <- function(asTable, equivLyr){
 
 format <- function(expTbl, tod_equiv){
 
+  # Convert the tod_equiv to a data frame
+  tod_equiv <- as.data.frame(tod_equiv) %>%
+    gather(key = period, value = as_period)
+
   # Format table
   expTbl <- expTbl %>%
     dplyr::select(FROM = OrigCentroid, TO = DestCentroid,
                  RESIDENT = Subscriber_Class,
                  TOD = Time_of_Day, Purpose, FinalTrips) %>%
     dplyr::filter(!is.na(FROM), !is.na(TO)) %>%
-    dplyr::mutate(
-      TOD = ifelse(TOD == tod_equiv$EA, "EA", TOD),
-      TOD = ifelse(TOD == tod_equiv$AM, "AM", TOD),
-      TOD = ifelse(TOD == tod_equiv$MD, "MD", TOD),
-      TOD = ifelse(TOD == tod_equiv$PM, "PM", TOD),
-      TOD = ifelse(TOD == tod_equiv$EV, "EV", TOD),
-      TOD = ifelse(TOD == "H00:H24", "Daily", TOD)
-    ) %>%
+    dplyr::left_join(tod_equiv, by = stats::setNames("as_period", "TOD")) %>%
+    dplyr::mutate(TOD = period) %>%
+    dplyr::select(-period) %>%
     tidyr::unite(PURPTOD, Purpose, TOD, sep = "_") %>%
     tidyr::spread(PURPTOD, FinalTrips)
 
