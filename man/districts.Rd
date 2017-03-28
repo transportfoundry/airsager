@@ -15,4 +15,3 @@ districts
 A layer containing the Hickory NC AirSage district polygons.
 }
 \keyword{datasets}
-

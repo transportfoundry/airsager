@@ -12,4 +12,3 @@ calc_perc(equivLyr)
 \description{
 Calculate the percent each centroid makes up of the district
 }
-

@@ -7,14 +7,14 @@
 make_equivLyr(centroids, districts)
 }
 \arguments{
-\item{centroids}{SpatialPointsDataFrame of model centroids.  Must
+\item{centroids}{SpatialPointsDataFrame of model centroids.  Can
 include the external stations (use the model node layer).
 Must also contain the following fields:
 \describe{
 \item{ZONEID}{Unique identifier for each row/zone}
 \item{EXTSTATION}{Externals stations marked with a 1}
-\item{SE}{"Stuff" in the zone to use for disaggregation. Can be any
-combination of residential and/or employment info.
+\item{SE}{"Stuff" in the zone to use for weighted disaggregation. Can be
+any combination of residential and/or employment info.
 For example:
 \itemize{
   \item SE = Households + Employment
@@ -38,4 +38,3 @@ A SpatialPointsDataFrame of TAZ centroids with the District
 \description{
 Create Equivalency Layer
 }
-

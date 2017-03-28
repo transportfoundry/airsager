@@ -1,7 +1,7 @@
 Package: airsager
 Type: Package
 Title: Disaggregate AirSage OD Tables to Model TAZs
-Version: 0.0.0.9000
+Version: 0.0.0.9001
 Authors@R: person("Kyle", "Ward", email = "warddk@pbworld.com", role = c("aut", "cre"))
 BugReports: https://github.com/pbsag/airsager/issues
 Description: AirSage OD data is delievered in a standard format as a CSV file.
@@ -20,4 +20,4 @@ Imports:
     rgdal (>= 1.1.7),
     sp (>= 1.1.2),
     spdep (>= 0.6-5)
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

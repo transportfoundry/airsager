@@ -23,14 +23,14 @@ format.  Should have 9 fields:
 \item Count
 }}
 
-\item{centroids}{SpatialPointsDataFrame of model centroids.  Must
+\item{centroids}{SpatialPointsDataFrame of model centroids.  Can
 include the external stations (use the model node layer).
 Must also contain the following fields:
 \describe{
 \item{ZONEID}{Unique identifier for each row/zone}
 \item{EXTSTATION}{Externals stations marked with a 1}
-\item{SE}{"Stuff" in the zone to use for disaggregation. Can be any
-combination of residential and/or employment info.
+\item{SE}{"Stuff" in the zone to use for weighted disaggregation. Can be
+any combination of residential and/or employment info.
 For example:
 \itemize{
   \item SE = Households + Employment
@@ -56,4 +56,3 @@ Remove adjacent external zone trips.  External trips to adjacent external
 zones should not be loaded onto the region's model network.  Similarly,
 external trips made within the same external zone are also removed.
 }
-

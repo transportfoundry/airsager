@@ -22,14 +22,14 @@ format.  Should have 9 fields:
 \item Count
 }}
 
-\item{centroids}{SpatialPointsDataFrame of model centroids.  Must
+\item{centroids}{SpatialPointsDataFrame of model centroids.  Can
 include the external stations (use the model node layer).
 Must also contain the following fields:
 \describe{
 \item{ZONEID}{Unique identifier for each row/zone}
 \item{EXTSTATION}{Externals stations marked with a 1}
-\item{SE}{"Stuff" in the zone to use for disaggregation. Can be any
-combination of residential and/or employment info.
+\item{SE}{"Stuff" in the zone to use for weighted disaggregation. Can be
+any combination of residential and/or employment info.
 For example:
 \itemize{
   \item SE = Households + Employment
@@ -69,4 +69,3 @@ A tbl_df() object the contains the trips from origin zones to
 Disaggregate from districts to zones.  Creates separate tables
 for each subscriber class and time of day.
 }
-

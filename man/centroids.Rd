@@ -15,4 +15,3 @@ centroids
 A layer containing the Hickory NC model centroid points and data.
 }
 \keyword{datasets}
-

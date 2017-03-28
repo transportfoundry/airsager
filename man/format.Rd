@@ -25,4 +25,3 @@ Returns the final table.
 \description{
 Formats columns and values in the exploded table.
 }
-
