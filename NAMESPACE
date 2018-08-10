@@ -2,6 +2,7 @@
 
 export(as_disagg)
 export(read_airsage)
+export(remove_adjacent_trips)
 importFrom(magrittr,"%>%")
 importFrom(readr,col_date)
 importFrom(readr,col_double)

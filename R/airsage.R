@@ -65,7 +65,7 @@ as_disagg <- function(asTable, centroids, districts, tod_equiv, ee_filter = NA){
   equivLyr <- calc_perc(equivLyr)
 
   # Disaggregate into zones
-  expTbl <- explode(asTable, equivLyr)
+  expTbl <- explode(asTable$corrected_flows, equivLyr)
 
   # Clean table and write out mini CSVs
   expTbl <- format(expTbl, tod_equiv)
@@ -73,123 +73,6 @@ as_disagg <- function(asTable, centroids, districts, tod_equiv, ee_filter = NA){
   return(expTbl)
 }
 
-#' Remove adjacent external zone trips.  External trips to adjacent external
-#' zones should not be loaded onto the region's model network.  Similarly,
-#' external trips made within the same external zone are also removed.
-#'
-#' @inheritParams as_disagg
-#' @importFrom magrittr "%>%"
-
-remove_adjacent_trips <- function(asTable, centroids, districts, ee_filter) {
-
-  # Overlay the two layers to determine which districts are external
-  # This can miss an external AS district if there are no modeled external
-  # stations in it.
-  temp <- sp::over(districts, centroids)
-  districts$EXTSTATION <- temp$EXTSTATION
-  districts$EXTSTATION[is.na(districts$EXTSTATION)] <- 0
-  extTbl <- districts@data %>%
-    dplyr::select(DISTRICTID, EXTSTATION)
-
-  # continue only if external districts were found
-  if (sum(extTbl$EXTSTATION) > 0){
-
-    # Modify asTable to mark which districts are external stations
-    asTable <- asTable %>%
-      dplyr::left_join(extTbl, by = c("Origin_Zone" = "DISTRICTID")) %>%
-      dplyr::rename(EXTORIGIN = EXTSTATION) %>%
-      dplyr::left_join(extTbl, by = c("Destination_Zone" = "DISTRICTID")) %>%
-      dplyr::rename(EXTDESTINATION = EXTSTATION)
-
-    # Remove intrazonal trips from external stations
-    remIntTrips <- asTable %>%
-      dplyr::filter(EXTORIGIN == 1, Origin_Zone == Destination_Zone) %>%
-      dplyr::summarise(total = sum(Count)) %>%
-      as.numeric()
-    print(paste0(
-      "Removing ", remIntTrips, " trips that are intrazonal for external zones"
-    ))
-    asTable <- asTable %>%
-      dplyr::mutate(
-        Count = ifelse(EXTORIGIN == 1 & Origin_Zone == Destination_Zone,
-                       0, Count)
-      )
-
-    # Determine neighbors
-    ext_dists <- districts[districts$EXTSTATION == 1, ]
-    adj <- spdep::poly2nb(ext_dists)
-    temp <- spdep::nb2mat(adj, style = "B")
-    rownames(temp) <- ext_dists$DISTRICTID
-    colnames(temp) <- ext_dists$DISTRICTID
-
-    adjTbl <- temp %>%
-      dplyr::tbl_df() %>%
-      dplyr::mutate(FROM = rownames(temp)) %>%
-      tidyr::gather(key = TO, value = ADJ, -FROM) %>%
-      dplyr::mutate(FROM = as.numeric(FROM), TO = as.numeric(TO))
-
-    # Modify asTable to remove adjacent external trips
-    asTable <- asTable %>%
-      dplyr::left_join(adjTbl, by = stats::setNames(
-        c("FROM", "TO"),
-        c("Origin_Zone", "Destination_Zone")
-      )) %>%
-      dplyr::mutate(ADJ = ifelse(is.na(ADJ), 0, ADJ))
-
-    remAdjTrips <- sum(asTable$Count[asTable$ADJ == 1])
-    print(paste0(
-      "Removing ", remAdjTrips, " that are from external stations to ",
-      "adjacent external stations"
-    ))
-    asTable <- asTable %>%
-      dplyr::mutate(
-        Count = ifelse(ADJ == 1, 0, Count)
-      )
-
-    # If it exists, use the ee_filter to remove additional flows as specified
-    if (is.data.frame(ee_filter)){
-      # standardize the column names
-      names <- colnames(ee_filter)
-      names[1] <- "from"
-      names[2] <- "to"
-      colnames(ee_filter) <- names
-
-      # Create a percent column if one isn't present
-      if (is.null(ee_filter$percent)){
-        ee_filter$percent <- 0
-      }
-
-      # make sure each row in the ee_filter is unique
-      ee_filter <- ee_filter %>%
-        group_by(from, to) %>%
-        summarize(percent = mean(percent)) %>%
-        ungroup()
-
-      # join ee_filter to asTable
-      asTable <- asTable %>%
-        dplyr::left_join(ee_filter, by = stats::setNames(
-          c("from", "to"),
-          c("Origin_Zone", "Destination_Zone")
-        ))
-
-      # print out how many trips will be removed by the ee_filter
-      rem_ee_filter <- asTable %>%
-        dplyr::filter(!is.na(percent)) %>%
-        dplyr::summarize(Count = sum(Count)) %>%
-        .$Count
-      print(paste0(
-        "Removing ", rem_ee_filter, " additional trips according to ",
-        "the ee_filter"
-      ))
-
-      # remove trips
-      asTable <- asTable %>%
-        mutate(Count = ifelse(!is.na(percent), Count * percent, Count)) %>%
-        select(-percent)
-    }
-  }
-  return(asTable)
-}
 
 
 #' Create Equivalency Layer
