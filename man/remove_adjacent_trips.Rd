@@ -2,7 +2,7 @@
 % Please edit documentation in R/remove_adjacent_trips.R
 \name{remove_adjacent_trips}
 \alias{remove_adjacent_trips}
-\title{Remove adjacent external zone trips.}
+\title{Remove adjacent external zone trips}
 \usage{
 remove_adjacent_trips(asTable, centroids = NULL, districts,
   ee_filter = NULL)

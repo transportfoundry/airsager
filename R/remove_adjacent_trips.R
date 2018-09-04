@@ -1,5 +1,4 @@
-
-#' Remove adjacent external zone trips.  
+#' Remove adjacent external zone trips  
 #' 
 #' External trips to adjacent external zones should not be loaded onto the
 #' region's model network.  Similarly, external trips made within the same

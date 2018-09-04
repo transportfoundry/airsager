@@ -19,5 +19,6 @@ Imports:
     tools (>= 3.2.4),
     rgdal (>= 1.1.7),
     sp (>= 1.1.2),
-    spdep (>= 0.6-5)
+    spdep (>= 0.6-5),
+    travelr
 RoxygenNote: 6.1.0
