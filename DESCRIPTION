@@ -20,4 +20,4 @@ Imports:
     rgdal (>= 1.1.7),
     sp (>= 1.1.2),
     spdep (>= 0.6-5)
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
